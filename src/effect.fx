@@ -63,5 +63,5 @@ void main(void)
     float d = sdRoundRect(n, size, radiusInTexels);
 		vec4 clearColor = vec4(0.0,0.0,0.0,0.0);
     vec4 texColor = texture2D(samplerFront, vTex);
-    gl_FragColor = mix(clearColor, texColor, step(0.0, d));
+    gl_FragColor = mix(texColor, clearColor, step(0.0, d));
 }

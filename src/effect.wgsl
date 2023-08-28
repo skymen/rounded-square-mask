@@ -116,6 +116,6 @@ fn main(input : FragmentInput) -> FragmentOutput
 	let texColor = textureSample(textureFront, samplerFront, input.fragUV);
 
 	var output : FragmentOutput;
-	output.color = mix(clearColor, texColor, step(0.0, d));
+	output.color = mix(texColor, clearColor, step(0.0, d));
 	return output;
 }

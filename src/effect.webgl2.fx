@@ -68,5 +68,5 @@ void main(void)
     float d = sdRoundRect(n, size, radiusInTexels);
 		vec4 clearColor = vec4(0.0,0.0,0.0,0.0);
     vec4 texColor = texture(samplerFront, vTex);
-    outColor = mix(clearColor, texColor, step(0.0, d));
+    outColor = mix(texColor, clearColor, step(0.0, d));
 }
