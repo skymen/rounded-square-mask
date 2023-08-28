@@ -37,7 +37,6 @@ uniform mediump float zFar;
 
 //<-- UNIFORMS -->
 
-
 float sdRoundRect( vec2 p, vec2 s, float r )
 {
     vec2 d = abs(p) - s + r;
@@ -68,6 +67,6 @@ void main(void)
 
     float d = sdRoundRect(n, size, radiusInTexels);
 		vec4 clearColor = vec4(0.0,0.0,0.0,0.0);
-    vec4 texColor = texture2D(samplerFront, vTex);
+    vec4 texColor = texture(samplerFront, vTex);
     outColor = mix(clearColor, texColor, step(0.0, d));
 }
