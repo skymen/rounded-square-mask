@@ -3,7 +3,7 @@ module.exports = {
   addonType: "effect",
   id: "skymen_RoundedSquareMask",
   name: "Rounded Square Mask",
-  version: "1.0.0.2",
+  version: "1.1.0.0",
   category: "blend",
   // "distortion",
   // "normal-mapping",
@@ -82,6 +82,46 @@ module.exports = {
       interpolatable: true,
       name: "Height",
       desc: "Height of the Square",
+    },
+    {
+      type: "float",
+      id: "radiusTL",
+      value: 0,
+      uniform: "radiusTL",
+      // precision: "lowp" // defaults to lowp if omitted
+      interpolatable: true,
+      name: "Top Left Radius",
+      desc: "If less or equal to 0, it will use the radius value",
+    },
+    {
+      type: "float",
+      id: "radiusTR",
+      value: 0,
+      uniform: "radiusTR",
+      // precision: "lowp" // defaults to lowp if omitted
+      interpolatable: true,
+      name: "Top Right Radius",
+      desc: "If less or equal to 0, it will use the radius value",
+    },
+    {
+      type: "float",
+      id: "radiusBL",
+      value: 0,
+      uniform: "radiusBL",
+      // precision: "lowp" // defaults to lowp if omitted
+      interpolatable: true,
+      name: "Bottom Left Radius",
+      desc: "If less or equal to 0, it will use the radius value",
+    },
+    {
+      type: "float",
+      id: "radiusBR",
+      value: 0,
+      uniform: "radiusBR",
+      // precision: "lowp" // defaults to lowp if omitted
+      interpolatable: true,
+      name: "Bottom Right Radius",
+      desc: "If less or equal to 0, it will use the radius value",
     },
   ],
 };

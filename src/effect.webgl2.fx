@@ -37,36 +37,112 @@ uniform mediump float zFar;
 
 //<-- UNIFORMS -->
 
-float sdRoundRect( vec2 p, vec2 s, float r )
-{
-    vec2 d = abs(p) - s + r;
-    return min(max(d.x,d.y),0.0) + length(max(d,0.0)) - r;
+vec4 rescaleCornerRadii(vec4 cr, vec2 rt) {
+    float maxWidth = rt.x;
+    float maxHeight = rt.y;
+
+    // Compute total radii for each axis
+    float totalTop = cr.x + cr.y;
+    float totalBottom = cr.z + cr.w;
+    float totalLeft = cr.y + cr.w;
+    float totalRight = cr.x + cr.z;
+
+    // Scale factor to keep ratios the same if they exceed dimensions
+    float scaleTop = totalTop > maxWidth ? maxWidth / totalTop : 1.0;
+    float scaleBottom = totalBottom > maxWidth ? maxWidth / totalBottom : 1.0;
+    float scaleLeft = totalLeft > maxHeight ? maxHeight / totalLeft : 1.0;
+    float scaleRight = totalRight > maxHeight ? maxHeight / totalRight : 1.0;
+
+    return vec4(
+        min(cr.x * scaleTop, cr.x * scaleRight),  // Top-right
+        min(cr.y * scaleTop, cr.y * scaleLeft),   // Top-left
+        min(cr.z * scaleBottom, cr.z * scaleRight), // Bottom-right
+        min(cr.w * scaleBottom, cr.w * scaleLeft)  // Bottom-left
+    );
 }
 
-void main(void)
-{
+// Round the top-right corner
+float roundedTopRight(vec2 pos, vec2 rt, float cr) {
+    vec2 halfSize = rt * 0.5;
+    if (pos.x < halfSize.x - cr || pos.y < halfSize.y - cr) return 1.0;
+    vec2 cornerCenter = vec2(halfSize.x - cr, halfSize.y - cr);
+    return smoothstep(cr, cr - 1.0, length(pos - cornerCenter));
+}
+
+// Round the top-left corner
+float roundedTopLeft(vec2 pos, vec2 rt, float cr) {
+    vec2 halfSize = rt * 0.5;
+    if (pos.x > -halfSize.x + cr || pos.y < halfSize.y - cr) return 1.0;
+    vec2 cornerCenter = vec2(-halfSize.x + cr, halfSize.y - cr);
+    return smoothstep(cr, cr - 1.0, length(pos - cornerCenter));
+}
+
+// Round the bottom-right corner
+float roundedBottomRight(vec2 pos, vec2 rt, float cr) {
+    vec2 halfSize = rt * 0.5;
+    if (pos.x < halfSize.x - cr || pos.y > -halfSize.y + cr) return 1.0;
+    vec2 cornerCenter = vec2(halfSize.x - cr, -halfSize.y + cr);
+    return smoothstep(cr, cr - 1.0, length(pos - cornerCenter));
+}
+
+// Round the bottom-left corner
+float roundedBottomLeft(vec2 pos, vec2 rt, float cr) {
+    vec2 halfSize = rt * 0.5;
+    if (pos.x > -halfSize.x + cr || pos.y > -halfSize.y + cr) return 1.0;
+    vec2 cornerCenter = vec2(-halfSize.x + cr, -halfSize.y + cr);
+    return smoothstep(cr, cr - 1.0, length(pos - cornerCenter));
+}
+
+float sdRoundRect(vec2 pos, vec2 rt, vec4 cr) {
+    vec4 scaledCr = rescaleCornerRadii(cr, rt);
+    vec2 halfSize = rt * 0.5;
+
+    // Ensure the position is inside the main rectangle bounds
+    if (abs(pos.x) >= halfSize.x || abs(pos.y) >= halfSize.y) {
+        return 0.0;
+    }
+
+    // Check each rounded corner
+    float topRight = roundedTopRight(pos, rt, scaledCr.x);
+    float topLeft = roundedTopLeft(pos, rt, scaledCr.y);
+    float bottomRight = roundedBottomRight(pos, rt, scaledCr.z);
+    float bottomLeft = roundedBottomLeft(pos, rt, scaledCr.w);
+
+    // Take the min of all four functions, ensuring all corners are correctly applied
+    return min(min(topRight, topLeft), min(bottomRight, bottomLeft));
+}
+
+void main() {
     vec2 uv = (vTex - srcOriginStart) / (srcOriginEnd - srcOriginStart);
 
     // Calculate the layout size
-    mediump vec2 layoutSize = abs(vec2(layoutEnd.x-layoutStart.x, (layoutEnd.y-layoutStart.y))); 
+    vec2 layoutSize = abs(vec2(layoutEnd.x - layoutStart.x, layoutEnd.y - layoutStart.y));
 
     vec2 center = vec2(0.5) * layoutSize;
-    vec2 n = (uv * layoutSize - center); // shifts the origin to the center and transforms to texel space
+    vec2 n = (uv * layoutSize - center); // Shift the origin to the center and transform to texel space
 
     // Apply rotation
-    float rad = angle * 3.14159265 / 180.0;
+    float rad = angle  * 3.14159265 / 180.0;
     float cosAngle = cos(-rad);
     float sinAngle = sin(-rad);
     n = vec2(n.x * cosAngle - n.y * sinAngle, n.x * sinAngle + n.y * cosAngle);
 
-    // scaling factor to make sure the rectangle inscribed inside the render rectangle area
+    // Scaling factor to fit within render rectangle area
     float scaleFactor = 1.0 / sqrt(2.0);
-    vec2 size = vec2(width, height) * vec2(0.5); // Scaled size
+    vec2 size =  vec2(width, height); // Scaled size
+    float defaultRadius = max(radius, 0.0);
 
-    float radiusInTexels = min(max(0.0, radius), min(size.x, size.y)); // Radius in texels
+    vec4 radii = vec4(
+        radiusBR > 0.0 ? radiusBR : defaultRadius,
+        radiusBL > 0.0 ? radiusBL : defaultRadius,
+        radiusTR > 0.0 ? radiusTR : defaultRadius,
+        radiusTL > 0.0 ? radiusTL : defaultRadius
+    );
 
-    float d = sdRoundRect(n, size, radiusInTexels);
-		vec4 clearColor = vec4(0.0,0.0,0.0,0.0);
+    // Signed distance function with individual corner radii
+    float d = sdRoundRect(n, size, radii);
+
+    vec4 clearColor = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 texColor = texture(samplerFront, vTex);
-    outColor = mix(texColor, clearColor, step(0.0, d));
+    outColor = mix(clearColor, texColor, smoothstep(0.0, 0.01, d));
 }
